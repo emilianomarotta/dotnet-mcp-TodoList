@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TodoApi.Models;
 
 public class Item
@@ -8,11 +10,12 @@ public class Item
     public bool IsComplete { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+    [JsonIgnore]
     public TodoList TodoList { get; set; } = null!;
 
     public override bool Equals(object? obj)
     {
-        Item item = (Item)obj;
-        return Id == item.Id || (TodoListId == item.TodoListId && Description == item.Description);
+         return obj is Item item &&
+           (Id == item.Id || (TodoListId == item.TodoListId && Description == item.Description));
     }
 }

@@ -8,7 +8,7 @@ public class TodoList
 
     public override bool Equals(object? obj)
     {
-        TodoList? todoList = (TodoList)obj;
-        return Id == todoList.Id || Name == todoList.Name;
+        return obj is TodoList todoList &&
+           (Id == todoList.Id || Name == todoList.Name);
     }
 }
