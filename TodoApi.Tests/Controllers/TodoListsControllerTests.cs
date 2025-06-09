@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Controllers;
@@ -101,11 +102,26 @@ public class TodoListsControllerTests
             var controller = new TodoListsController(context);
 
             var result = await controller.PostTodoList(new Dtos.CreateTodoList { Name = "Task 3" });
-
             Assert.IsType<CreatedAtActionResult>(result.Result);
             Assert.Equal(3, context.TodoList.Count());
+            
         }
     }
+    [Fact]
+    public async Task PostTodoList_WhenCalled_AlreadyExistsTodoList()
+    {
+        using (var context = new TodoContext(DatabaseContextOptions()))
+        {
+            PopulateDatabaseContext(context);
+
+            var controller = new TodoListsController(context);
+
+            var result = await controller.PostTodoList(new Dtos.CreateTodoList { Name = "Task 1" });
+
+            Assert.IsType<ConflictObjectResult>(result.Result);
+        }
+    }
+
 
     [Fact]
     public async Task DeleteTodoList_WhenCalled_RemovesTodoList()
@@ -120,6 +136,65 @@ public class TodoListsControllerTests
 
             Assert.IsType<NoContentResult>(result);
             Assert.Equal(1, context.TodoList.Count());
+        }
+    }
+
+    [Fact]
+    public async Task GetTodoList_WhenNotFound_ReturnsNotFound()
+    {
+        using (var context = new TodoContext(DatabaseContextOptions()))
+        {
+            PopulateDatabaseContext(context);
+
+            var controller = new TodoListsController(context);
+
+            var result = await controller.GetTodoList(999);
+
+            Assert.IsType<NotFoundResult>(result.Result);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteTodoList_WhenNotFound_ReturnsNotFound()
+    {
+        using (var context = new TodoContext(DatabaseContextOptions()))
+        {
+            PopulateDatabaseContext(context);
+
+            var controller = new TodoListsController(context);
+
+            var result = await controller.DeleteTodoList(999);
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+    }
+
+    [Fact]
+    public async Task GetTodoList_WhenCalled_ReturnsTodoListWithItems()
+    {
+        using (var context = new TodoContext(DatabaseContextOptions()))
+        {
+            var todoList = new TodoList
+            {
+                Id = 1,
+                Name = "List with Items",
+                Items = new List<Item>
+            {
+                new Item { Description = "Item 1", TodoListId = 1},
+                new Item { Description = "Item 2", TodoListId = 1 }
+            }
+            };
+
+            context.TodoList.Add(todoList);
+            context.SaveChanges();
+
+            var controller = new TodoListsController(context);
+            var result = await controller.GetTodoList(1);
+
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedList = Assert.IsType<TodoList>(okResult.Value);
+
+            Assert.Equal(2, returnedList.Items.Count);
         }
     }
 }
