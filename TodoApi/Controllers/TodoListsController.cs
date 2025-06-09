@@ -16,18 +16,16 @@ namespace TodoApi.Controllers
             _context = context;
         }
 
-        // GET: api/todolists
         [HttpGet]
         public async Task<ActionResult<IList<TodoList>>> GetTodoLists()
         {
-            return Ok(await _context.TodoList.ToListAsync());
+            return Ok(await _context.TodoList.Include(tl => tl.Items).ToListAsync());
         }
 
-        // GET: api/todolists/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TodoList>> GetTodoList(long id)
         {
-            var todoList = await _context.TodoList.FindAsync(id);
+            var todoList = await _context.TodoList.Include(tl => tl.Items).FirstOrDefaultAsync(tl => tl.Id == id);
 
             if (todoList == null)
             {
@@ -37,8 +35,6 @@ namespace TodoApi.Controllers
             return Ok(todoList);
         }
 
-        // PUT: api/todolists/5
-        // To protect from over-posting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<ActionResult> PutTodoList(long id, UpdateTodoList payload)
         {
@@ -55,12 +51,14 @@ namespace TodoApi.Controllers
             return Ok(todoList);
         }
 
-        // POST: api/todolists
-        // To protect from over-posting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<TodoList>> PostTodoList(CreateTodoList payload)
         {
             var todoList = new TodoList { Name = payload.Name };
+            if (TodoListExists(todoList.Name))
+            {
+                return Conflict("A TodoList with the same name already exists.");
+            }
 
             _context.TodoList.Add(todoList);
             await _context.SaveChangesAsync();
@@ -68,7 +66,6 @@ namespace TodoApi.Controllers
             return CreatedAtAction("GetTodoList", new { id = todoList.Id }, todoList);
         }
 
-        // DELETE: api/todolists/5
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteTodoList(long id)
         {
@@ -84,9 +81,9 @@ namespace TodoApi.Controllers
             return NoContent();
         }
 
-        private bool TodoListExists(long id)
+        private bool TodoListExists(string name)
         {
-            return (_context.TodoList?.Any(e => e.Id == id)).GetValueOrDefault();
+            return (_context.TodoList?.Any(e => e.Name == name)).GetValueOrDefault();
         }
     }
 }
